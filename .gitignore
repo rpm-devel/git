@@ -1,8 +1,5 @@
-*~
-*.gpg
-*.rpm
-*.sign
-*.tar.xz
-/.build*.log
-/git-*/
-/results_git/
+# gitignore created on 11/05/21 at 11:15
+# Disable reminder in prompt
+ignoredirmessage
+
+
