@@ -28,36 +28,20 @@
 %bcond_with                 asciidoctor
 %endif
 
-# Settings for Fedora and EL >= 8
-%if 0%{?fedora} || 0%{?rhel} >= 8
+# Python2 is not available on EL >= 9 or Fedora
 %bcond_with                 python2
 %bcond_without              python3
 %global gitweb_httpd_conf   gitweb.conf
 %global use_glibc_langpacks 1
 %global use_perl_generators 1
 %global use_perl_interpreter 1
-%else
-%bcond_without              python2
-%bcond_with                 python3
-%global gitweb_httpd_conf   git.conf
-%global use_glibc_langpacks 0
-%global use_perl_generators 0
-%global use_perl_interpreter 0
-%endif
 
-# Settings for Fedora and EL >= 7
-%if 0%{?fedora} || 0%{?rhel} >= 7
 %global bashcompdir         %(pkg-config --variable=completionsdir bash-completion 2>/dev/null)
 %global bashcomproot        %(dirname %{bashcompdir} 2>/dev/null)
-%endif
 
 # Allow cvs subpackage to be toggled via --with/--without
-# Disable cvs subpackage by default on EL >= 8
-%if 0%{?rhel} >= 8
+# Disable cvs subpackage by default on EL >= 9
 %bcond_with                 cvs
-%else
-%bcond_without              cvs
-%endif
 
 # Allow credential-libsecret subpackage to be toggled via --with/--without
 %bcond_without              libsecret
@@ -70,22 +54,17 @@
 %bcond_with                 p4
 %endif
 
-# Hardening flags for EL-7
-%if 0%{?rhel} == 7
-%global _hardened_build     1
-%endif
-
 # Define for release candidates
 #global rcrev   .rc0
 
 Name:           git
-Version:        2.33.1
-Release:        1%{?rcrev}%{?dist}
+Version:        2.54.0
+Release:        1%{?dist}
 Summary:        Fast Version Control System
 License:        GPLv2
 URL:            https://git-scm.com/
-Source0:        https://www.kernel.org/pub/software/scm/git/%{?rcrev:testing/}%{name}-%{version}%{?rcrev}.tar.xz
-Source1:        https://www.kernel.org/pub/software/scm/git/%{?rcrev:testing/}%{name}-%{version}%{?rcrev}.tar.sign
+Source0:        https://www.kernel.org/pub/software/scm/git/%{name}-%{version}.tar.xz
+Source1:        https://www.kernel.org/pub/software/scm/git/%{name}-%{version}.tar.sign
 
 # Junio C Hamano's key is used to sign git releases, it can be found in the
 # junio-gpg-pub tag within git.
@@ -141,12 +120,6 @@ BuildRequires:  diffutils
 BuildRequires:  emacs-common
 %endif
 # endif emacs-common
-%if 0%{?rhel} && 0%{?rhel} < 9
-# Require epel-rpm-macros for the %%gpgverify macro on EL-7/EL-8, and
-# %%build_cflags & %%build_ldflags on EL-7.
-BuildRequires:  epel-rpm-macros
-%endif
-# endif rhel < 9
 BuildRequires:  expat-devel
 BuildRequires:  findutils
 BuildRequires:  gawk
@@ -160,20 +133,16 @@ BuildRequires:  pcre2-devel
 BuildRequires:  perl(Error)
 BuildRequires:  perl(lib)
 BuildRequires:  perl(Test)
-%if %{use_perl_generators}
 BuildRequires:  perl-generators
-%endif
-# endif use_perl_generators
-%if %{use_perl_interpreter}
 BuildRequires:  perl-interpreter
-%else
-BuildRequires:  perl
-%endif
-# endif use_perl_interpreter
 BuildRequires:  pkgconfig(bash-completion)
 BuildRequires:  sed
 # For macros
+%if 0%{?rhel} >= 8 || 0%{?fedora}
+BuildRequires:  systemd-rpm-macros
+%else
 BuildRequires:  systemd
+%endif
 BuildRequires:  tcl
 BuildRequires:  tk
 BuildRequires:  xz
@@ -182,33 +151,21 @@ BuildRequires:  zlib-devel >= 1.2
 %if %{with tests}
 # Test suite requirements
 BuildRequires:  acl
-%if 0%{?fedora} || 0%{?rhel} >= 8
 # Needed by t5540-http-push-webdav.sh
 BuildRequires: apr-util-bdb
-%endif
-# endif fedora >= 27
 BuildRequires:  bash
 %if %{with cvs}
 BuildRequires:  cvs
 BuildRequires:  cvsps
 %endif
 # endif with cvs
-%if %{use_glibc_langpacks}
 # glibc-all-langpacks and glibc-langpack-is are needed for GETTEXT_LOCALE and
 # GETTEXT_ISO_LOCALE test prereq's, glibc-langpack-en ensures en_US.UTF-8.
 BuildRequires:  glibc-all-langpacks
 BuildRequires:  glibc-langpack-en
 BuildRequires:  glibc-langpack-is
-%endif
-# endif use_glibc_langpacks
-%if 0%{?fedora} || 0%{?rhel} >= 9
 BuildRequires:  gnupg2-smime
-%endif
-# endif fedora or el >= 9
-%if 0%{?fedora} || ( 0%{?rhel} >= 7 && ( "%{_arch}" == "ppc64le" || "%{_arch}" == "x86_64" ) )
 BuildRequires:  highlight
-%endif
-# endif fedora or el7+ (ppc64le/x86_64)
 BuildRequires:  httpd
 %if 0%{?fedora} && ! ( 0%{?fedora} >= 35 || "%{_arch}" == "i386" || "%{_arch}" == "s390x" )
 BuildRequires:  jgit
@@ -236,15 +193,7 @@ BuildRequires:  perl(POSIX)
 BuildRequires:  perl(Term::ReadLine)
 BuildRequires:  perl(Test::More)
 BuildRequires:  perl(Time::HiRes)
-%if %{with python3}
 BuildRequires:  python3-devel
-%else
-%if %{with python2}
-BuildRequires:  python2-devel
-%endif
-# endif with python2
-%endif
-# endif with python3
 BuildRequires:  subversion
 BuildRequires:  subversion-perl
 BuildRequires:  tar
@@ -297,6 +246,7 @@ tools for integrating with other SCMs, install the git-all meta-package.
 Summary:        Meta-package to pull in all git tools
 #BuildArch:      %{BuildArch}
 Requires:       git = %{version}-%{release}
+Obsoletes:      git-all < %{version}-%{release}
 %if %{with libsecret}
 Requires:       git-credential-libsecret = %{version}-%{release}
 %endif
@@ -333,6 +283,7 @@ Summary:        Core package of git with minimal functionality
 Requires:       less
 Requires:       openssh-clients
 Requires:       zlib >= 1.2
+Obsoletes:      git-core < %{version}-%{release}
 %description core
 Git is a fast, scalable, distributed revision control system with an
 unusually rich command set that provides both high-level operations
@@ -347,6 +298,7 @@ other SCMs, install the git-all meta-package.
 Summary:        Documentation files for git-core
 #BuildArch:      %{BuildArch}
 Requires:       git-core = %{version}-%{release}
+Obsoletes:      git-core-doc < %{version}-%{release}
 %description core-doc
 Documentation files for git-core package including man pages.
 
@@ -355,6 +307,7 @@ Documentation files for git-core package including man pages.
 Summary:        Git helper for accessing credentials via libsecret
 BuildRequires:  libsecret-devel
 Requires:       git = %{version}-%{release}
+Obsoletes:      git-credential-libsecret < %{version}-%{release}
 %description credential-libsecret
 %{summary}.
 %endif
@@ -368,6 +321,7 @@ Requires:       git = %{version}-%{release}
 Requires:       cvs
 Requires:       cvsps
 Requires:       perl(DBD::SQLite)
+Obsoletes:      git-cvs < %{version}-%{release}
 %description cvs
 %{summary}.
 %endif
@@ -376,10 +330,8 @@ Requires:       perl(DBD::SQLite)
 %package daemon
 Summary:        Git protocol daemon
 Requires:       git-core = %{version}-%{release}
-Requires:       systemd
-Requires(post): systemd
-Requires(preun):  systemd
-Requires(postun): systemd
+%{?systemd_requires}
+Obsoletes:      git-daemon < %{version}-%{release}
 %description daemon
 The git daemon for supporting git:// access to git repositories
 
@@ -389,6 +341,7 @@ Summary:        Git tools for sending patches via email
 Requires:       git = %{version}-%{release}
 Requires:       perl(Authen::SASL)
 Requires:       perl(Net::SMTP::SSL)
+Obsoletes:      git-email < %{version}-%{release}
 %description email
 %{summary}.
 
@@ -398,6 +351,7 @@ Summary:        Git repository browser
 Requires:       git = %{version}-%{release}
 Requires:       git-gui = %{version}-%{release}
 Requires:       tk >= 8.4
+Obsoletes:      gitk < %{version}-%{release}
 %description -n gitk
 %{summary}.
 
@@ -405,6 +359,7 @@ Requires:       tk >= 8.4
 Summary:        Simple web interface to git repositories
 #BuildArch:      %{BuildArch}
 Requires:       git = %{version}-%{release}
+Obsoletes:      gitweb < %{version}-%{release}
 %description -n gitweb
 %{summary}.
 
@@ -413,6 +368,7 @@ Summary:        Graphical interface to Git
 #BuildArch:      %{BuildArch}
 Requires:       gitk = %{version}-%{release}
 Requires:       tk >= 8.4
+Obsoletes:      git-gui < %{version}-%{release}
 %description gui
 %{summary}.
 
@@ -421,11 +377,8 @@ Summary:        Repository browser in gitweb
 #BuildArch:      %{BuildArch}
 Requires:       git = %{version}-%{release}
 Requires:       gitweb = %{version}-%{release}
-%if 0%{?rhel} >= 9
 Requires:       httpd
-%else
-Requires:       lighttpd
-%endif
+Obsoletes:      git-instaweb < %{version}-%{release}
 
 %description instaweb
 A simple script to set up gitweb and a web server for browsing the local
@@ -435,16 +388,9 @@ repository.
 %package p4
 Summary:        Git tools for working with Perforce depots
 #BuildArch:      %{BuildArch}
-%if %{with python3}
 BuildRequires:  python3-devel
-%else
-%if %{with python2}
-BuildRequires:  python2-devel
-%endif
-# endif with python2
-%endif
-# endif with python3
 Requires:       git = %{version}-%{release}
+Obsoletes:      git-p4 < %{version}-%{release}
 %description p4
 %{summary}.
 %endif
@@ -456,6 +402,7 @@ Summary:        Perl interface to Git
 Requires:       git = %{version}-%{release}
 Requires:       perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Obsoletes:      git-perl-Git
+Obsoletes:      perl-Git < %{version}-%{release}
 %description -n perl-Git
 %{summary}.
 
@@ -464,12 +411,14 @@ Summary:        Perl interface to Git::SVN
 #BuildArch:      %{BuildArch}
 Requires:       git = %{version}-%{release}
 Requires:       perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
+Obsoletes:      perl-Git-SVN < %{version}-%{release}
 %description -n perl-Git-SVN
 %{summary}.
 
 %package subtree
 Summary:        Git tools to merge and split repositories
 Requires:       git-core = %{version}-%{release}
+Obsoletes:      git-subtree < %{version}-%{release}
 %description subtree
 Git subtrees allow subprojects to be included within a subdirectory
 of the main project, optionally including the subproject's entire
@@ -485,6 +434,7 @@ Requires:       perl(Term::ReadKey)
 %endif
 # endif ! defined perl_bootstrap
 Requires:       subversion
+Obsoletes:      git-svn < %{version}-%{release}
 %description svn
 %{summary}.
 
@@ -492,7 +442,7 @@ Requires:       subversion
 # Verify GPG signatures
 xz -dc '%{SOURCE0}' | %{gpgverify} --keyring='%{SOURCE2}' --signature='%{SOURCE1}' --data=-
 
-%autosetup -p1 -n %{name}-%{version}%{?rcrev}
+%autosetup -p1 -n %{name}-%{version}
 
 # Install print-failed-test-output script
 install -p -m 755 %{SOURCE99} print-failed-test-output
@@ -525,15 +475,7 @@ INSTALL_SYMLINKS = 1
 GITWEB_PROJECTROOT = %{_localstatedir}/lib/git
 GNU_ROFF = 1
 NO_PERL_CPAN_FALLBACKS = 1
-%if %{with python3}
 PYTHON_PATH = %{__python3}
-%else
-%if %{with python2}
-PYTHON_PATH = %{__python2}
-%else
-NO_PYTHON = 1
-%endif
-%endif
 %if %{with asciidoctor}
 USE_ASCIIDOCTOR = 1
 %endif
@@ -590,22 +532,12 @@ export SOURCE_DATE_EPOCH=$(date -r version +%%s 2>/dev/null)
 
 %make_build -C contrib/subtree/ all
 
-# Fix shebang in a few places to silence rpmlint complaints
-%if %{with python2}
-sed -i -e '1s@#! */usr/bin/env python$@#!%{__python2}@' \
-    contrib/fast-import/import-zips.py
-%else
 # Remove contrib/fast-import/import-zips.py which requires python2.
 rm -rf contrib/fast-import/import-zips.py
-%endif
-# endif with python2
 
-# Use python3 to avoid an unnecessary python2 dependency, if possible.
-%if %{with python3}
+# Use python3 for contrib/hg-to-git
 sed -i -e '1s@#!\( */usr/bin/env python\|%{__python2}\)$@#!%{__python3}@' \
     contrib/hg-to-git/hg-to-git.py
-%endif
-# endif with python3
 
 %install
 %make_install %{?with_docs:install-doc}
@@ -888,11 +820,6 @@ rmdir --ignore-fail-on-non-empty "$testdir"
 %{_datadir}/git-core/
 
 %files core-doc -f man-doc-files-core
-%if 0%{?rhel} && 0%{?rhel} <= 7
-# .py files are only bytecompiled on EL <= 7
-%exclude %{_pkgdocdir}/contrib/*/*.py[co]
-%endif
-# endif rhel <= 7
 %{_pkgdocdir}/contrib/hooks
 
 %if %{with libsecret}
@@ -989,6 +916,10 @@ rmdir --ignore-fail-on-non-empty "$testdir"
 %{?with_docs:%{_pkgdocdir}/git-svn.html}
 
 %changelog
+* Fri Apr 24 2026 CasjaysDev <rpm-devel@casjaysdev.pro> - 2.54.0-1
+- Update to 2.54.0
+- Modernize spec for EL10
+
 * Wed Oct 13 2021 Todd Zullinger <tmz@pobox.com> - 2.33.1-1
 - update to 2.33.1
 
