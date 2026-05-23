@@ -769,7 +769,7 @@ sed -i "s@\(GIT_TEST_OPTS='.*\)'@\1 --root=$testdir'@" GIT-BUILD-OPTIONS
 touch -r ts GIT-BUILD-OPTIONS
 
 # Run the tests
-%__make test || ./print-failed-test-output
+%{__make} test || ./print-failed-test-output
 
 # Run contrib/credential/netrc tests
 mkdir -p contrib/credential
@@ -916,6 +916,9 @@ rmdir --ignore-fail-on-non-empty "$testdir"
 %{?with_docs:%{_pkgdocdir}/git-svn.html}
 
 %changelog
+* Fri May 22 2026 CasjaysDev <rpm-devel@casjaysdev.pro> - 2.54.0-1
+- Fix deprecated %__make macro to %{__make}
+
 * Fri Apr 24 2026 CasjaysDev <rpm-devel@casjaysdev.pro> - 2.54.0-1
 - Update to 2.54.0
 - Modernize spec for EL10
