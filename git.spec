@@ -58,11 +58,12 @@
 #global rcrev   .rc0
 
 Name:           git
-Version:        2.54.0
+Version:        2.55.0
 Release:        1%{?dist}
 Summary:        Fast Version Control System
-License:        GPLv2
+License:        GPL-2.0-only
 URL:            https://git-scm.com/
+ExclusiveArch:  x86_64 aarch64
 Source0:        https://www.kernel.org/pub/software/scm/git/%{name}-%{version}.tar.xz
 Source1:        https://www.kernel.org/pub/software/scm/git/%{name}-%{version}.tar.sign
 
@@ -916,6 +917,10 @@ rmdir --ignore-fail-on-non-empty "$testdir"
 %{?with_docs:%{_pkgdocdir}/git-svn.html}
 
 %changelog
+* Sat Jul 04 2026 CasjaysDev <rpm-devel@casjaysdev.pro> - 2.55.0-1
+- Version: 2.54.0 → 2.55.0 (latest kernel.org release; verified 200)
+- SPDX: GPLv2 → GPL-2.0-only; add ExclusiveArch: x86_64 aarch64
+
 * Fri May 22 2026 CasjaysDev <rpm-devel@casjaysdev.pro> - 2.54.0-1
 - Fix deprecated %__make macro to %{__make}
 
