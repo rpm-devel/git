@@ -39,6 +39,15 @@
 %global bashcompdir         %(pkg-config --variable=completionsdir bash-completion 2>/dev/null)
 %global bashcomproot        %(dirname %{bashcompdir} 2>/dev/null)
 
+# expat-devel is named libexpat-devel on openSUSE/SLES
+%if 0%{?suse_version}
+%global expat_devel_pkg     libexpat-devel
+%global httpd_pkg           apache2
+%else
+%global expat_devel_pkg     expat-devel
+%global httpd_pkg           httpd
+%endif
+
 # Allow cvs subpackage to be toggled via --with/--without
 # Disable cvs subpackage by default on EL >= 9
 %bcond_with                 cvs
@@ -121,7 +130,7 @@ BuildRequires:  diffutils
 BuildRequires:  emacs-common
 %endif
 # endif emacs-common
-BuildRequires:  expat-devel
+BuildRequires:  %{expat_devel_pkg}
 BuildRequires:  findutils
 BuildRequires:  gawk
 BuildRequires:  gcc
@@ -153,7 +162,12 @@ BuildRequires:  zlib-devel >= 1.2
 # Test suite requirements
 BuildRequires:  acl
 # Needed by t5540-http-push-webdav.sh
+# apr-util-bdb has no equivalent on openSUSE/SLES; libapr-util1 there is
+# built without the Berkeley DB backend, so only require it on RHEL/Fedora
+%if ! 0%{?suse_version}
 BuildRequires: apr-util-bdb
+%endif
+# endif ! suse_version
 BuildRequires:  bash
 %if %{with cvs}
 BuildRequires:  cvs
@@ -162,17 +176,29 @@ BuildRequires:  cvsps
 # endif with cvs
 # glibc-all-langpacks and glibc-langpack-is are needed for GETTEXT_LOCALE and
 # GETTEXT_ISO_LOCALE test prereq's, glibc-langpack-en ensures en_US.UTF-8.
+# openSUSE/SLES ship all locale data in glibc-locale, no per-language packages
+%if 0%{?suse_version}
+BuildRequires:  glibc-locale
+%else
 BuildRequires:  glibc-all-langpacks
 BuildRequires:  glibc-langpack-en
 BuildRequires:  glibc-langpack-is
+%endif
+# endif suse_version
 BuildRequires:  gnupg2-smime
 BuildRequires:  highlight
-BuildRequires:  httpd
+BuildRequires:  %{httpd_pkg}
 %if 0%{?fedora} && ! ( 0%{?fedora} >= 35 || "%{_arch}" == "i386" || "%{_arch}" == "s390x" )
 BuildRequires:  jgit
 %endif
 # endif fedora (except i386 and s390x)
+# mod_dav_svn is provided by the subversion-server package on openSUSE/SLES
+%if 0%{?suse_version}
+BuildRequires:  subversion-server
+%else
 BuildRequires:  mod_dav_svn
+%endif
+# endif suse_version
 BuildRequires:  perl(App::Prove)
 BuildRequires:  perl(CGI)
 BuildRequires:  perl(CGI::Carp)
@@ -245,7 +271,6 @@ tools for integrating with other SCMs, install the git-all meta-package.
 
 %package all
 Summary:        Meta-package to pull in all git tools
-#BuildArch:      %{BuildArch}
 Requires:       git = %{version}-%{release}
 Obsoletes:      git-all < %{version}-%{release}
 %if %{with libsecret}
@@ -297,7 +322,6 @@ other SCMs, install the git-all meta-package.
 
 %package core-doc
 Summary:        Documentation files for git-core
-#BuildArch:      %{BuildArch}
 Requires:       git-core = %{version}-%{release}
 Obsoletes:      git-core-doc < %{version}-%{release}
 %description core-doc
@@ -317,7 +341,6 @@ Obsoletes:      git-credential-libsecret < %{version}-%{release}
 %if %{with cvs}
 %package cvs
 Summary:        Git tools for importing CVS repositories
-#BuildArch:      %{BuildArch}
 Requires:       git = %{version}-%{release}
 Requires:       cvs
 Requires:       cvsps
@@ -338,7 +361,6 @@ The git daemon for supporting git:// access to git repositories
 
 %package email
 Summary:        Git tools for sending patches via email
-#BuildArch:      %{BuildArch}
 Requires:       git = %{version}-%{release}
 Requires:       perl(Authen::SASL)
 Requires:       perl(Net::SMTP::SSL)
@@ -348,7 +370,6 @@ Obsoletes:      git-email < %{version}-%{release}
 
 %package -n gitk
 Summary:        Git repository browser
-#BuildArch:      %{BuildArch}
 Requires:       git = %{version}-%{release}
 Requires:       git-gui = %{version}-%{release}
 Requires:       tk >= 8.4
@@ -358,7 +379,6 @@ Obsoletes:      gitk < %{version}-%{release}
 
 %package -n gitweb
 Summary:        Simple web interface to git repositories
-#BuildArch:      %{BuildArch}
 Requires:       git = %{version}-%{release}
 Obsoletes:      gitweb < %{version}-%{release}
 %description -n gitweb
@@ -366,7 +386,6 @@ Obsoletes:      gitweb < %{version}-%{release}
 
 %package gui
 Summary:        Graphical interface to Git
-#BuildArch:      %{BuildArch}
 Requires:       gitk = %{version}-%{release}
 Requires:       tk >= 8.4
 Obsoletes:      git-gui < %{version}-%{release}
@@ -375,10 +394,9 @@ Obsoletes:      git-gui < %{version}-%{release}
 
 %package instaweb
 Summary:        Repository browser in gitweb
-#BuildArch:      %{BuildArch}
 Requires:       git = %{version}-%{release}
 Requires:       gitweb = %{version}-%{release}
-Requires:       httpd
+Requires:       %{httpd_pkg}
 Obsoletes:      git-instaweb < %{version}-%{release}
 
 %description instaweb
@@ -388,7 +406,6 @@ repository.
 %if %{with p4}
 %package p4
 Summary:        Git tools for working with Perforce depots
-#BuildArch:      %{BuildArch}
 BuildRequires:  python3-devel
 Requires:       git = %{version}-%{release}
 Obsoletes:      git-p4 < %{version}-%{release}
@@ -399,7 +416,6 @@ Obsoletes:      git-p4 < %{version}-%{release}
 
 %package -n perl-Git
 Summary:        Perl interface to Git
-#BuildArch:      %{BuildArch}
 Requires:       git = %{version}-%{release}
 Requires:       perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Obsoletes:      git-perl-Git
@@ -409,7 +425,6 @@ Obsoletes:      perl-Git < %{version}-%{release}
 
 %package -n perl-Git-SVN
 Summary:        Perl interface to Git::SVN
-#BuildArch:      %{BuildArch}
 Requires:       git = %{version}-%{release}
 Requires:       perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Obsoletes:      perl-Git-SVN < %{version}-%{release}
@@ -427,7 +442,6 @@ history.
 
 %package svn
 Summary:        Git tools for interacting with Subversion repositories
-#BuildArch:      %{BuildArch}
 Requires:       git = %{version}-%{release}
 Requires:       perl(Digest::MD5)
 %if ! %{defined perl_bootstrap}
@@ -917,6 +931,16 @@ rmdir --ignore-fail-on-non-empty "$testdir"
 %{?with_docs:%{_pkgdocdir}/git-svn.html}
 
 %changelog
+* Sat Jul 05 2026 CasjaysDev <rpm-devel@casjaysdev.pro> - 2.55.0-1
+- Multi-distro: guard expat-devel (libexpat-devel on SUSE), httpd
+  (apache2 on SUSE) BuildRequires/Requires with %%{?suse_version}
+- Multi-distro: guard test-only apr-util-bdb (no SUSE equivalent,
+  libapr-util1 there lacks the Berkeley DB backend), mod_dav_svn
+  (provided by subversion-server on SUSE), and glibc-langpack-*
+  (SUSE ships all locales in glibc-locale, no per-language packages)
+- Remove 12 stray commented #BuildArch lines from subpackages
+  (ExclusiveArch: x86_64 aarch64 already covers all subpackages)
+
 * Sat Jul 04 2026 CasjaysDev <rpm-devel@casjaysdev.pro> - 2.55.0-1
 - Version: 2.54.0 → 2.55.0 (latest kernel.org release; verified 200)
 - SPDX: GPLv2 → GPL-2.0-only; add ExclusiveArch: x86_64 aarch64
