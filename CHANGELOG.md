@@ -1,6 +1,11 @@
 # git Changelog
 
-## (current)-2
+## 2.55.0-3
+
+- Add `mock/` directory with per-distro mock configs for EL8, EL9, EL10
+  (x86_64 and aarch64) referencing the org-level casjay templates
+
+## 2.55.0-2
 
 - Extend existing `%if 0%{?suse_version}` block: add `gitweb_confdir`
   macro (`/etc/apache2/conf.d` on SUSE, `/etc/httpd/conf.d` elsewhere)
