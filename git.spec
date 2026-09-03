@@ -43,9 +43,11 @@
 %if 0%{?suse_version}
 %global expat_devel_pkg     libexpat-devel
 %global httpd_pkg           apache2
+%global gitweb_confdir      %{_sysconfdir}/apache2/conf.d
 %else
 %global expat_devel_pkg     expat-devel
 %global httpd_pkg           httpd
+%global gitweb_confdir      %{_sysconfdir}/httpd/conf.d
 %endif
 
 # Allow cvs subpackage to be toggled via --with/--without
@@ -138,7 +140,11 @@ BuildRequires:  gettext
 BuildRequires:  gnupg2
 BuildRequires:  libcurl-devel
 BuildRequires:  make
+%if 0%{?suse_version}
+BuildRequires:  libopenssl-devel
+%else
 BuildRequires:  openssl-devel
+%endif
 BuildRequires:  pcre2-devel
 BuildRequires:  perl(Error)
 BuildRequires:  perl(lib)
@@ -585,8 +591,8 @@ mv contrib/credential/netrc .
 
 %make_install -C contrib/subtree
 
-mkdir -p %{buildroot}%{_sysconfdir}/httpd/conf.d
-install -pm 0644 %{SOURCE13} %{buildroot}%{_sysconfdir}/httpd/conf.d/%{gitweb_httpd_conf}
+mkdir -p %{buildroot}%{gitweb_confdir}
+install -pm 0644 %{SOURCE13} %{buildroot}%{gitweb_confdir}/%{gitweb_httpd_conf}
 sed "s|@PROJECTROOT@|%{_localstatedir}/lib/git|g" \
     %{SOURCE14} > %{buildroot}%{_sysconfdir}/gitweb.conf
 
@@ -882,7 +888,7 @@ rmdir --ignore-fail-on-non-empty "$testdir"
 %{?with_docs:%{_mandir}/man5/gitweb.conf.5*}
 %{?with_docs:%{_pkgdocdir}/gitweb*.html}
 %config(noreplace)%{_sysconfdir}/gitweb.conf
-%config(noreplace)%{_sysconfdir}/httpd/conf.d/%{gitweb_httpd_conf}
+%config(noreplace)%{gitweb_confdir}/%{gitweb_httpd_conf}
 %{_localstatedir}/www/git/
 
 %files gui
